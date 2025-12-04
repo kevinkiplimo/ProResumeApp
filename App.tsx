@@ -148,65 +148,9 @@ function App() {
     setShowWelcome(false);
   };
 
-  // Export Logic with Multi-page Support
-  const handleExportPDF = async () => {
-    const element = document.getElementById('resume-preview');
-    if (!element) return;
-    
-    // Save original styles
-    const originalStyle = element.style.cssText;
-    
-    // Configure element for PDF capture: Width of A4, infinite height
-    element.style.width = '210mm';
-    element.style.height = 'auto'; 
-    element.style.minHeight = '297mm';
-    element.style.margin = '0';
-    element.style.overflow = 'visible';
-    
-    try {
-      // @ts-ignore
-      const canvas = await window.html2canvas(element, { 
-        scale: 2, 
-        useCORS: true,
-        logging: false,
-        windowWidth: element.scrollWidth,
-        windowHeight: element.scrollHeight
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // @ts-ignore
-      const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-      
-      // First page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      // Subsequent pages (if content is longer than 1 page)
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight; // Basically -297, -594, etc.
-        pdf.addPage();
-        // position calculation: we want the next slice. 
-        // The image is one giant strip. We just move it up by one page height each time.
-        // Page 1: 0. Page 2: -297. Page 3: -594.
-        const pageIndex = pdf.internal.getNumberOfPages() - 1;
-        pdf.addImage(imgData, 'PNG', 0, -pageHeight * pageIndex, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save(`${resumeData.personalInfo.fullName.replace(/\s+/g, '_')}_Resume.pdf`);
-    } catch (e) {
-      console.error("Export failed", e);
-      alert("Export failed. Please try again or use the browser Print function.");
-    } finally {
-      element.style.cssText = originalStyle;
-    }
+  // Export Logic using Native Print (Best for PDF)
+  const handleExportPDF = () => {
+    window.print();
   };
 
   return (
@@ -251,7 +195,7 @@ function App() {
               className="w-full justify-center" 
               icon={<Icons.Download size={16} />}
             >
-              Export PDF
+              Print / Save PDF
             </Button>
           </div>
         </aside>
@@ -340,7 +284,7 @@ function App() {
                                     <input 
                                         type="checkbox" 
                                         checked={!!exp.displayDate} 
-                                        onChange={(e) => updateExperience(exp.id, 'displayDate', e.target.checked ? (exp.startDate + (exp.current ? ' - Present' : (exp.endDate ? ' - ' + exp.endDate : ''))) : undefined)}
+                                        onChange={(e) => updateExperience(exp.id, 'displayDate', e.target.checked ? (exp.startDate ? `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}` : '') : undefined)}
                                         className="mr-1"
                                     />
                                     Use custom date format
@@ -351,7 +295,7 @@ function App() {
                                 <Input 
                                     value={exp.displayDate} 
                                     onChange={(e) => updateExperience(exp.id, 'displayDate', e.target.value)} 
-                                    placeholder="e.g. 2018-2019, 2021-Present" 
+                                    placeholder="e.g. 2018 - 2019" 
                                 />
                              ) : (
                                 <div className="grid grid-cols-2 gap-4">
@@ -413,7 +357,7 @@ function App() {
                                     <input 
                                         type="checkbox" 
                                         checked={!!edu.displayDate} 
-                                        onChange={(e) => updateEducation(edu.id, 'displayDate', e.target.checked ? (edu.startDate + (edu.current ? ' - Present' : (edu.endDate ? ' - ' + edu.endDate : ''))) : undefined)}
+                                        onChange={(e) => updateEducation(edu.id, 'displayDate', e.target.checked ? (edu.startDate ? `${edu.startDate} - ${edu.current ? 'Present' : edu.endDate}` : '') : undefined)}
                                         className="mr-1"
                                     />
                                     Use custom date format
