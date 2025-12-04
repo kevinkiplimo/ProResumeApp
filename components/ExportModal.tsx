@@ -48,7 +48,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onCon
               onClick={() => onConfirm(filename)} 
               icon={<Icons.Download size={16} />}
             >
-              Save & Download
+              Save PDF
             </Button>
           </div>
         </div>

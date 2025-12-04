@@ -150,9 +150,18 @@ function App() {
     setShowWelcome(false);
   };
 
-  // Print directly (System Print Dialog)
-  const handlePrint = () => {
-    window.print();
+  // Save as JSON Project file
+  const handleSaveProject = () => {
+    const fileName = `${resumeData.personalInfo.fullName.replace(/\s+/g, '_') || 'Resume'}_Project.json`;
+    const json = JSON.stringify(resumeData, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = href;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Open Modal for PDF Download
@@ -166,8 +175,8 @@ function App() {
     
     // Set dynamic title for filename
     const originalTitle = document.title;
-    // Sanitize filename
-    const cleanName = filename.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
+    // Use filename exactly as provided (trimmed)
+    const cleanName = filename.trim() || 'Resume';
     document.title = cleanName;
 
     // Use setTimeout to allow the UI to settle and ensure the browser 
@@ -185,6 +194,7 @@ function App() {
   // Helper to generate default filename
   const getDefaultFilename = () => {
     const name = resumeData.personalInfo.fullName || 'Resume';
+    // Provide a reasonable default but let user edit fully
     return `${name.replace(/\s+/g, '_')}_CV`;
   };
 
@@ -233,13 +243,13 @@ function App() {
 
           <div className="p-4 border-t border-slate-100 flex flex-col gap-3">
              <Button 
-              onClick={handlePrint} 
+              onClick={handleSaveProject} 
               variant="secondary"
               className="w-full justify-center" 
-              icon={<Icons.Printer size={16} />}
-              title="Print to paper"
+              icon={<Icons.Save size={16} />}
+              title="Save project file to edit later"
             >
-              Print Resume
+              Save Project
             </Button>
             <Button 
               onClick={handleDownloadClick} 
@@ -247,7 +257,7 @@ function App() {
               icon={<Icons.Download size={16} />}
               title="Save as PDF file"
             >
-              Download PDF
+              Save as PDF
             </Button>
           </div>
         </aside>
