@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { ResumeData, SectionType, ExperienceItem, EducationItem, ReferenceItem } from './types';
 import { ResumePreview } from './components/ResumePreview';
 import { WelcomeModal } from './components/WelcomeModal';
+import { ExportModal } from './components/ExportModal';
 import { Button, Input, RichTextArea, Icons } from './components/UI';
 import { enhanceText, generateSummary } from './services/geminiService';
 
@@ -22,6 +23,7 @@ function App() {
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeState);
   const [activeSection, setActiveSection] = useState<SectionType>('personal');
   const [showWelcome, setShowWelcome] = useState(true);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [enhancingId, setEnhancingId] = useState<string | null>(null);
   
   // Navigation Items
@@ -148,25 +150,42 @@ function App() {
     setShowWelcome(false);
   };
 
-  // Export Logic using Native Print (Best for PDF)
-  const handleExportPDF = () => {
-    // 1. Set dynamic title for better default filename in "Save as PDF" dialog
-    const originalTitle = document.title;
-    const candidateName = resumeData.personalInfo.fullName || 'Resume';
-    // Sanitize filename
-    const cleanName = candidateName.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
-    document.title = `${cleanName}_CV`;
+  // Print directly (System Print Dialog)
+  const handlePrint = () => {
+    window.print();
+  };
 
-    // 2. Use setTimeout to allow the UI to settle and ensure the browser 
+  // Open Modal for PDF Download
+  const handleDownloadClick = () => {
+    setShowExportModal(true);
+  };
+
+  // Execute PDF Download (Print to PDF with Name)
+  const handleConfirmExport = (filename: string) => {
+    setShowExportModal(false);
+    
+    // Set dynamic title for filename
+    const originalTitle = document.title;
+    // Sanitize filename
+    const cleanName = filename.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
+    document.title = cleanName;
+
+    // Use setTimeout to allow the UI to settle and ensure the browser 
     // print dialog is triggered after the current event loop.
     setTimeout(() => {
         window.print();
         
-        // 3. Reset title after a delay (enough for the dialog to open)
+        // Reset title after a delay
         setTimeout(() => {
             document.title = originalTitle;
         }, 500);
     }, 100);
+  };
+
+  // Helper to generate default filename
+  const getDefaultFilename = () => {
+    const name = resumeData.personalInfo.fullName || 'Resume';
+    return `${name.replace(/\s+/g, '_')}_CV`;
   };
 
   return (
@@ -177,6 +196,13 @@ function App() {
           onDataParsed={handleDataParsed} 
         />
       )}
+      
+      <ExportModal 
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onConfirm={handleConfirmExport}
+        initialValue={getDefaultFilename()}
+      />
 
       <div className="flex h-screen bg-slate-100 font-sans">
         
@@ -207,16 +233,16 @@ function App() {
 
           <div className="p-4 border-t border-slate-100 flex flex-col gap-3">
              <Button 
-              onClick={handleExportPDF} 
+              onClick={handlePrint} 
               variant="secondary"
               className="w-full justify-center" 
               icon={<Icons.Printer size={16} />}
-              title="Print to paper or PDF"
+              title="Print to paper"
             >
               Print Resume
             </Button>
             <Button 
-              onClick={handleExportPDF} 
+              onClick={handleDownloadClick} 
               className="w-full justify-center" 
               icon={<Icons.Download size={16} />}
               title="Save as PDF file"
@@ -268,6 +294,15 @@ function App() {
                     onEnhance={resumeData.experience.length > 0 ? handleGenerateSummary : undefined}
                     isEnhancing={enhancingId === 'summary'}
                   />
+                  
+                  {/* Character Limit Indicator */}
+                  <div className="flex justify-between items-center text-xs mt-1">
+                    <span className="text-slate-400">Supports Markdown</span>
+                    <span className={`font-medium ${resumeData.summary.length > 700 ? "text-red-500" : "text-slate-400"}`}>
+                      {resumeData.summary.length} / 700 chars
+                    </span>
+                  </div>
+
                   {resumeData.experience.length > 0 && (
                      <Button 
                        variant="secondary" 

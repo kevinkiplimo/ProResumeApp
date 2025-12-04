@@ -5,22 +5,68 @@ interface ResumePreviewProps {
   data: ResumeData;
 }
 
-// Helper to render markdown-like text
+// Helper to render markdown-like text with proper list handling
 const MarkdownText: React.FC<{ text: string; className?: string }> = ({ text, className = '' }) => {
   if (!text) return null;
+
+  // Split text into lines to process lists structure
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let listItems: React.ReactNode[] = [];
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      elements.push(
+        <ul key={`list-${elements.length}`} className="list-disc ml-5 space-y-1 my-2">
+          {listItems}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    
+    // Handle List Items (start with - or *)
+    if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+      const content = trimmed.substring(2);
+      // Process bold/italic inside list item
+      const processed = content
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+      listItems.push(
+        <li key={`li-${index}`} dangerouslySetInnerHTML={{ __html: processed }} />
+      );
+    } else {
+      // Flush any pending list if we hit a non-list line
+      flushList();
+      
+      if (!trimmed) {
+        // Option: add a spacer for empty lines or ignore
+        // elements.push(<div key={`br-${index}`} className="h-2"></div>); 
+        return; 
+      }
+
+      // Regular paragraph
+      const processed = line
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+      elements.push(
+        <div key={`p-${index}`} className="mb-1" dangerouslySetInnerHTML={{ __html: processed }} />
+      );
+    }
+  });
   
-  // Basic conversion for bullets and bold
-  const htmlContent = text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-    .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic
-    .replace(/\n\s*-\s+(.*)/g, '<li class="ml-4 list-disc pl-1">$1</li>') // Bullets
-    .replace(/\n/g, '<br />'); // Newlines
+  // Flush any remaining list at the end of the text
+  flushList();
 
   return (
-    <div 
-      className={`prose prose-sm max-w-none ${className}`}
-      dangerouslySetInnerHTML={{ __html: htmlContent }} 
-    />
+    <div className={`text-sm leading-relaxed ${className}`}>
+      {elements}
+    </div>
   );
 };
 
@@ -28,7 +74,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
   return (
     <div 
       id="resume-preview" 
-      className="resume-page bg-white w-[210mm] mx-auto p-[15mm] shadow-2xl text-slate-800 print:shadow-none print:w-full print:m-0"
+      className="resume-page bg-white w-[210mm] mx-auto p-[15mm] shadow-2xl text-slate-800 print:shadow-none print:w-full print:m-0 font-serif"
       style={{ minHeight: '297mm' }}
     >
       {/* Header */}
