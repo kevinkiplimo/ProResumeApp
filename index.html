@@ -14,12 +14,22 @@
       
       /* Print specific overrides */
       @media print {
-        @page { margin: 0; }
-        body, html { margin: 0; padding: 0; overflow: visible !important; height: auto !important; -webkit-print-color-adjust: exact; }
+        @page { size: auto; margin: 0; }
+        body, html { margin: 0; padding: 0; overflow: visible !important; height: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         #root { overflow: visible !important; height: auto !important; }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
-        .resume-page { box-shadow: none; margin: 0; width: 100% !important; max-width: none !important; min-height: 0 !important; height: auto !important; page-break-after: always; }
+        /* Ensure the resume container takes full width/height and allows breaks */
+        .resume-page { 
+          box-shadow: none; 
+          margin: 0; 
+          width: 100% !important; 
+          max-width: none !important; 
+          min-height: 0 !important; 
+          height: auto !important; 
+        }
+        /* Break handling */
+        section { break-inside: avoid; }
       }
       
       /* Custom Scrollbar */

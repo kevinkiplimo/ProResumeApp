@@ -33,6 +33,7 @@ export interface EducationItem {
   endDate: string;
   current: boolean;
   displayDate?: string; // For non-consecutive dates or custom formats
+  description?: string; // Added description for rich text
 }
 
 export interface ReferenceItem {

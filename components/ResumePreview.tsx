@@ -28,7 +28,8 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
   return (
     <div 
       id="resume-preview" 
-      className="resume-page bg-white w-[210mm] min-h-[297mm] mx-auto p-[15mm] shadow-2xl text-slate-800"
+      className="resume-page bg-white w-[210mm] mx-auto p-[15mm] shadow-2xl text-slate-800"
+      style={{ minHeight: '297mm' }}
     >
       {/* Header */}
       <div className="border-b-2 border-slate-800 pb-6 mb-6">
@@ -56,7 +57,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
 
       {/* Summary */}
       {data.summary && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 border-b border-slate-200 pb-1">
             Professional Summary
           </h2>
@@ -74,7 +75,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
           </h2>
           <div className="space-y-5">
             {data.experience.map((exp) => (
-              <div key={exp.id}>
+              <div key={exp.id} className="break-inside-avoid">
                 <div className="flex justify-between items-baseline mb-1">
                   <h3 className="font-bold text-slate-900">{exp.role}</h3>
                   <span className="text-xs font-medium text-slate-500">
@@ -99,7 +100,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
           </h2>
           <div className="space-y-4">
             {data.education.map((edu) => (
-              <div key={edu.id}>
+              <div key={edu.id} className="break-inside-avoid">
                 <div className="flex justify-between items-baseline">
                   <h3 className="font-bold text-slate-900">{edu.institution}</h3>
                   <span className="text-xs font-medium text-slate-500">
@@ -107,6 +108,11 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
                   </span>
                 </div>
                 <div className="text-sm text-slate-700">{edu.degree}</div>
+                {edu.description && (
+                  <div className="text-sm text-slate-600 leading-relaxed mt-1">
+                     <MarkdownText text={edu.description} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -115,7 +121,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
 
       {/* Skills */}
       {data.skills.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-3 border-b border-slate-200 pb-1">
             Skills
           </h2>
@@ -134,7 +140,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data }) => {
 
       {/* References */}
       {data.references.length > 0 && (
-        <section className="mb-6">
+        <section className="mb-6 break-inside-avoid">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 mb-4 border-b border-slate-200 pb-1">
             References
           </h2>

@@ -76,7 +76,8 @@ export const parseResumeFromText = async (rawText: string): Promise<Partial<Resu
                   degree: { type: Type.STRING },
                   startDate: { type: Type.STRING },
                   endDate: { type: Type.STRING },
-                  current: { type: Type.BOOLEAN }
+                  current: { type: Type.BOOLEAN },
+                  description: { type: Type.STRING }
                 }
               }
             },

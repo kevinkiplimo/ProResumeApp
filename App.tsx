@@ -73,7 +73,8 @@ function App() {
       degree: '',
       startDate: '',
       endDate: '',
-      current: false
+      current: false,
+      description: ''
     };
     setResumeData(prev => ({ ...prev, education: [newItem, ...prev.education] }));
   };
@@ -147,26 +148,58 @@ function App() {
     setShowWelcome(false);
   };
 
-  // Export Logic
+  // Export Logic with Multi-page Support
   const handleExportPDF = async () => {
     const element = document.getElementById('resume-preview');
     if (!element) return;
     
-    // Temporarily fix height for capturing
+    // Save original styles
     const originalStyle = element.style.cssText;
-    element.style.height = 'auto'; // Ensure full height is captured
+    
+    // Configure element for PDF capture: Width of A4, infinite height
+    element.style.width = '210mm';
+    element.style.height = 'auto'; 
+    element.style.minHeight = '297mm';
+    element.style.margin = '0';
+    element.style.overflow = 'visible';
     
     try {
       // @ts-ignore
-      const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
+      const canvas = await window.html2canvas(element, { 
+        scale: 2, 
+        useCORS: true,
+        logging: false,
+        windowWidth: element.scrollWidth,
+        windowHeight: element.scrollHeight
+      });
       
+      const imgData = canvas.toDataURL('image/png');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
       // @ts-ignore
       const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // First page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      
+      // Subsequent pages (if content is longer than 1 page)
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight; // Basically -297, -594, etc.
+        pdf.addPage();
+        // position calculation: we want the next slice. 
+        // The image is one giant strip. We just move it up by one page height each time.
+        // Page 1: 0. Page 2: -297. Page 3: -594.
+        const pageIndex = pdf.internal.getNumberOfPages() - 1;
+        pdf.addImage(imgData, 'PNG', 0, -pageHeight * pageIndex, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+      
       pdf.save(`${resumeData.personalInfo.fullName.replace(/\s+/g, '_')}_Resume.pdf`);
     } catch (e) {
       console.error("Export failed", e);
@@ -232,9 +265,6 @@ function App() {
               
               <div className="mb-6 flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800 capitalize">{activeSection} Details</h2>
-                <div className="md:hidden">
-                  {/* Mobile Preview Toggle could go here */}
-                </div>
               </div>
 
               {/* SECTION: PERSONAL */}
@@ -412,6 +442,15 @@ function App() {
                                    </div>
                                 </div>
                              )}
+                         </div>
+
+                         <div className="col-span-2">
+                             <RichTextArea
+                                 label="Additional Details (Optional)"
+                                 value={edu.description || ''}
+                                 onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
+                                 placeholder="• Graduated with Honors..."
+                             />
                          </div>
                        </div>
                     </div>
