@@ -189,13 +189,21 @@ function App() {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-slate-100">
+          <div className="p-4 border-t border-slate-100 flex flex-col gap-3">
+             <Button 
+              onClick={handleExportPDF} 
+              variant="secondary"
+              className="w-full justify-center" 
+              icon={<Icons.Printer size={16} />}
+            >
+              Print Resume
+            </Button>
             <Button 
               onClick={handleExportPDF} 
               className="w-full justify-center" 
               icon={<Icons.Download size={16} />}
             >
-              Print / Save PDF
+              Download PDF
             </Button>
           </div>
         </aside>
@@ -204,7 +212,7 @@ function App() {
         <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
           
           {/* EDITOR COLUMN */}
-          <div className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 md:max-w-xl border-r border-slate-200 print:hidden">
+          <div id="editor-column" className="flex-1 overflow-y-auto bg-slate-50 p-6 md:p-8 md:max-w-xl border-r border-slate-200 print:hidden">
             <div className="max-w-lg mx-auto pb-20">
               
               <div className="mb-6 flex justify-between items-center">
@@ -456,7 +464,7 @@ function App() {
           </div>
 
           {/* PREVIEW COLUMN */}
-          <div className="flex-1 bg-slate-200 overflow-y-auto p-8 flex justify-center items-start print:p-0 print:bg-white print:block">
+          <div id="preview-column" className="flex-1 bg-slate-200 overflow-y-auto p-8 flex justify-center items-start print:p-0 print:bg-white print:block">
             <div className="scale-[0.8] md:scale-[0.85] lg:scale-[0.9] xl:scale-100 origin-top transition-transform duration-200 print:scale-100 print:origin-top-left">
               <ResumePreview data={resumeData} />
             </div>
