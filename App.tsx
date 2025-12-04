@@ -150,7 +150,23 @@ function App() {
 
   // Export Logic using Native Print (Best for PDF)
   const handleExportPDF = () => {
-    window.print();
+    // 1. Set dynamic title for better default filename in "Save as PDF" dialog
+    const originalTitle = document.title;
+    const candidateName = resumeData.personalInfo.fullName || 'Resume';
+    // Sanitize filename
+    const cleanName = candidateName.replace(/[^a-zA-Z0-9-_ ]/g, '').replace(/\s+/g, '_');
+    document.title = `${cleanName}_CV`;
+
+    // 2. Use setTimeout to allow the UI to settle and ensure the browser 
+    // print dialog is triggered after the current event loop.
+    setTimeout(() => {
+        window.print();
+        
+        // 3. Reset title after a delay (enough for the dialog to open)
+        setTimeout(() => {
+            document.title = originalTitle;
+        }, 500);
+    }, 100);
   };
 
   return (
@@ -195,6 +211,7 @@ function App() {
               variant="secondary"
               className="w-full justify-center" 
               icon={<Icons.Printer size={16} />}
+              title="Print to paper or PDF"
             >
               Print Resume
             </Button>
@@ -202,6 +219,7 @@ function App() {
               onClick={handleExportPDF} 
               className="w-full justify-center" 
               icon={<Icons.Download size={16} />}
+              title="Save as PDF file"
             >
               Download PDF
             </Button>
