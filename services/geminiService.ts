@@ -17,7 +17,7 @@ export const enhanceText = async (text: string, context: string): Promise<string
       Original Text:
       "${text}"
       
-      Return ONLY the rewritten text. Do not add quotes or markdown blocks.`,
+      Return ONLY the rewritten text as a bulleted list using hyphens. Do not add quotes or markdown blocks.`,
     });
 
     return response.text?.trim() || text;

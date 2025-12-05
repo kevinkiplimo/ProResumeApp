@@ -60,7 +60,7 @@ function App() {
       startDate: '',
       endDate: '',
       current: false,
-      description: ''
+      description: '- ' // Automatically start with bullet point
     };
     setResumeData(prev => ({ ...prev, experience: [newItem, ...prev.experience] }));
   };
@@ -84,7 +84,7 @@ function App() {
       startDate: '',
       endDate: '',
       current: false,
-      description: ''
+      description: '- ' // Automatically start with bullet point
     };
     setResumeData(prev => ({ ...prev, education: [newItem, ...prev.education] }));
   };
@@ -190,40 +190,79 @@ function App() {
     const element = document.getElementById('resume-preview');
     if (!element) return;
 
-    // Temporarily remove shadow for clean PDF export
+    // Temporarily remove shadow and padding to let PDF engine handle margins
     const wasShadowed = element.classList.contains('shadow-2xl');
     if (wasShadowed) element.classList.remove('shadow-2xl');
+
+    // Remove internal padding classes to avoid double spacing with PDF margins
+    // We store the class to restore it later.
+    let originalPaddingClass = '';
+    const classList = Array.from(element.classList);
+    const paddingClass = classList.find(c => c.startsWith('p-['));
+    if (paddingClass) {
+        originalPaddingClass = paddingClass;
+        element.classList.remove(paddingClass);
+        element.classList.add('p-0');
+    }
 
     const cleanFilename = filename.trim().endsWith('.pdf') 
       ? filename.trim() 
       : `${filename.trim()}.pdf`;
 
     const opt = {
-      margin: 0, // Resume component already has internal padding
+      // Top, Left, Bottom, Right (mm) - Bottom increased to 15mm for footer space
+      margin: [10, 10, 15, 10], 
       filename: cleanFilename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
         scale: 2, // High resolution
         useCORS: true, 
         scrollY: 0,
-        logging: false
+        logging: false,
+        letterRendering: true,
+        // Critical: Capture full height to prevent truncation on multipage
+        windowHeight: element.scrollHeight + 50 
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      pagebreak: { mode: ['css', 'legacy'] } // Respect CSS page break rules
     };
 
     // Execute generation
     window.html2pdf()
       .set(opt)
       .from(element)
+      .toPdf()
+      .get('pdf')
+      .then((pdf: any) => {
+        // Add Pagination Footer
+        const totalPages = pdf.internal.getNumberOfPages();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(9);
+          pdf.setTextColor(150); // Light gray
+          // Center footer text at bottom
+          pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+        }
+      })
       .save()
       .then(() => {
         // Restore styling
         if (wasShadowed) element.classList.add('shadow-2xl');
+        if (originalPaddingClass) {
+            element.classList.remove('p-0');
+            element.classList.add(originalPaddingClass);
+        }
       })
       .catch((err: any) => {
         console.error('PDF Generation Error:', err);
         if (wasShadowed) element.classList.add('shadow-2xl');
+        if (originalPaddingClass) {
+            element.classList.remove('p-0');
+            element.classList.add(originalPaddingClass);
+        }
         alert('Failed to generate PDF. Please check console for details.');
       });
   };
@@ -231,7 +270,7 @@ function App() {
   // Helper to generate default filename
   const getDefaultFilename = () => {
     const name = resumeData.personalInfo.fullName || 'Resume';
-    return `${name.replace(/\s+/g, '_')}_CV`;
+    return `${name}_CV`; // Preserve spaces as requested
   };
 
   return (
@@ -427,7 +466,7 @@ function App() {
                          label="Description / Achievements" 
                          value={exp.description} 
                          onChange={(e) => updateExperience(exp.id, 'description', e.target.value)}
-                         placeholder="• Led a team of 5 engineers..."
+                         placeholder="- Led a team of 5 engineers..."
                          onEnhance={() => handleEnhanceDescription(exp.id, exp.description, exp.role)}
                          isEnhancing={enhancingId === exp.id}
                        />
@@ -500,7 +539,7 @@ function App() {
                                  label="Additional Details (Optional)"
                                  value={edu.description || ''}
                                  onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
-                                 placeholder="• Graduated with Honors..."
+                                 placeholder="- Graduated with Honors..."
                              />
                          </div>
                        </div>
