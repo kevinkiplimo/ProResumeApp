@@ -4,6 +4,18 @@ import { ResumeData } from "../types";
 const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
+// Helper to remove pagination artifacts (Footer Sanitization)
+const cleanResumeText = (text: string): string => {
+  if (!text) return "";
+  return text
+    // Remove "Page X of Y" or "Page X" patterns commonly found in footers/headers
+    .replace(/Page\s+\d+\s+of\s+\d+/gi, '')
+    .replace(/Page\s+\d+/gi, '')
+    // Remove isolated page numbers often found at bottom center
+    .replace(/^\s*\d+\s*$/gm, '')
+    .trim();
+};
+
 export const enhanceText = async (text: string, context: string): Promise<string> => {
   if (!text) return "";
   
@@ -29,12 +41,21 @@ export const enhanceText = async (text: string, context: string): Promise<string
 
 export const parseResumeFromText = async (rawText: string): Promise<Partial<ResumeData>> => {
   try {
+    // 1. Footer Sanitization
+    const cleanedText = cleanResumeText(rawText);
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: `Extract resume information from the following text into a JSON object.
       
       Text to parse:
-      ${rawText}
+      ${cleanedText}
+
+      Instructions:
+      - Split dates strictly into startDate and endDate where possible.
+      - If a date is "Present" or "Current", set 'current' to true.
+      - If a date range is complex (e.g. "2018 and 2023" or "Summer 2020"), put the exact string in 'startDate' and leave 'endDate' empty.
+      - Do NOT return the string "undefined" or "null". Use empty strings "" for missing data.
       `,
       config: {
         responseMimeType: "application/json",
@@ -43,7 +64,38 @@ export const parseResumeFromText = async (rawText: string): Promise<Partial<Resu
     });
 
     const jsonText = response.text || "{}";
-    return JSON.parse(jsonText);
+    const parsedData = JSON.parse(jsonText);
+
+    // 2. Date Field Normalization & Post-processing
+    const normalizeItems = (items: any[]) => {
+      if (!items || !Array.isArray(items)) return [];
+      return items.map(item => {
+        // Fix "undefined" strings
+        Object.keys(item).forEach(key => {
+          if (item[key] === "undefined" || item[key] === "null") {
+            item[key] = "";
+          }
+        });
+
+        // Handle complex start dates that should be displayDates
+        if (item.startDate && item.startDate.match(/and|&|;|\|/)) {
+           item.displayDate = item.startDate;
+           item.startDate = "";
+        }
+        
+        // Ensure bullet points for descriptions
+        if (item.description && !item.description.trim().startsWith('-') && !item.description.trim().startsWith('•')) {
+            item.description = `- ${item.description}`;
+        }
+
+        return item;
+      });
+    };
+
+    if (parsedData.experience) parsedData.experience = normalizeItems(parsedData.experience);
+    if (parsedData.education) parsedData.education = normalizeItems(parsedData.education);
+
+    return parsedData;
   } catch (error) {
     console.error("Gemini Parse Error:", error);
     throw new Error("Failed to parse resume text.");
@@ -61,7 +113,7 @@ export const generateTailoredResume = async (
       Act as an expert resume writer and career coach. 
       I need you to generate a tailored resume JSON object based on the following inputs.
 
-      1. **Current Resume**: ${currentResume}
+      1. **Current Resume**: ${cleanResumeText(currentResume)}
       2. **LinkedIn Profile Data**: ${linkedinData}
       3. **Target Job Description**: ${jobDescription}
       4. **Target Location**: ${location}
@@ -131,7 +183,8 @@ function getResumeSchema() {
             startDate: { type: Type.STRING },
             endDate: { type: Type.STRING },
             current: { type: Type.BOOLEAN },
-            description: { type: Type.STRING }
+            description: { type: Type.STRING },
+            displayDate: { type: Type.STRING }
           }
         }
       },
@@ -145,7 +198,8 @@ function getResumeSchema() {
             startDate: { type: Type.STRING },
             endDate: { type: Type.STRING },
             current: { type: Type.BOOLEAN },
-            description: { type: Type.STRING }
+            description: { type: Type.STRING },
+            displayDate: { type: Type.STRING }
           }
         }
       },
