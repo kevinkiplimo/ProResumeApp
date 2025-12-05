@@ -60,7 +60,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
         style={{ minHeight: '297mm' }}
       >
         {/* Header */}
-        <div className="border-b-2 border-slate-900 pb-6 mb-8 text-center">
+        <div className="border-b-2 border-slate-900 pb-6 mb-8 text-center break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
           <h1 className="text-4xl font-bold text-slate-900 tracking-tight uppercase mb-4">
             {data.personalInfo.fullName || "Your Name"}
           </h1>
@@ -87,7 +87,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
 
         {data.experience.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-300 pb-1 text-center">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-300 pb-1 text-center break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
               Experience
             </h2>
             <div className="space-y-6">
@@ -109,7 +109,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
 
         {data.education.length > 0 && (
           <section className="mb-8">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-300 pb-1 text-center">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-300 pb-1 text-center break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
               Education
             </h2>
             <div className="space-y-4">
@@ -147,7 +147,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
             </h2>
              <div className="grid grid-cols-2 gap-6">
                {data.references.map((ref) => (
-                 <div key={ref.id}>
+                 <div key={ref.id} className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                    <div className="font-bold">{ref.name}</div>
                    <div>{ref.role}, {ref.company}</div>
                    <div className="text-sm text-slate-600">{ref.email}</div>
@@ -195,7 +195,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
 
         {data.experience.length > 0 && (
           <section className="mb-10">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6">Experience</h2>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>Experience</h2>
             <div className="space-y-8">
               {data.experience.map((exp) => (
                 <div key={exp.id} className="break-inside-avoid relative pl-4 border-l-2 border-slate-100" style={{ pageBreakInside: 'avoid' }}>
@@ -220,7 +220,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {data.education.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Education</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>Education</h2>
               <div className="space-y-4">
                 {data.education.map((edu) => (
                   <div key={edu.id} className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
@@ -258,7 +258,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
       style={{ minHeight: '297mm' }}
     >
       {/* Header */}
-      <div className="border-b-2 border-slate-800 pb-6 mb-8 text-center sm:text-left">
+      <div className="border-b-2 border-slate-800 pb-6 mb-8 text-center sm:text-left break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight uppercase mb-3">
           {data.personalInfo.fullName || "Your Name"}
         </h1>
@@ -286,7 +286,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
       {/* Experience */}
       {data.experience.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4 border-b border-slate-200 pb-2">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4 border-b border-slate-200 pb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
             Experience
           </h2>
           <div className="space-y-6">
@@ -311,7 +311,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
       {/* Education */}
       {data.education.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4 border-b border-slate-200 pb-2">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-4 border-b border-slate-200 pb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
             Education
           </h2>
           <div className="space-y-5">
@@ -362,7 +362,7 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
             {data.references.map((ref) => (
-              <div key={ref.id} className="text-sm">
+              <div key={ref.id} className="text-sm break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                 <div className="font-bold text-lg text-slate-900">{ref.name}</div>
                 <div className="text-slate-700 font-medium">{ref.role}</div>
                 <div className="text-slate-600 italic mb-1">{ref.company}</div>

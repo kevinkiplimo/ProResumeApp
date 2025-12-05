@@ -202,17 +202,19 @@ function App() {
 
     const clone = originalElement.cloneNode(true) as HTMLElement;
     
-    // Reset styles for the clone to ensure flat A4 rendering
+    // Reset styles for the clone to ensure flat A4 rendering without internal padding
+    // We remove the internal padding because html2pdf will add the 1-inch margins
     clone.style.transform = 'none';
-    clone.style.margin = '0'; // Overrides mx-auto
-    clone.style.padding = '0'; // We rely on the ResumePreview's internal padding
+    clone.style.margin = '0'; 
+    clone.style.setProperty('padding', '0', 'important'); // Critical: Override Tailwind p-[20mm]
     clone.style.boxShadow = 'none';
-    clone.classList.remove('shadow-2xl', 'mx-auto', 'my-8'); // Remove display-only classes
+    clone.classList.remove('shadow-2xl', 'mx-auto', 'my-8', 'p-[20mm]', 'p-[15mm]', 'p-[10mm]'); 
+    
     clone.style.height = 'auto'; // Allow full expansion
     clone.style.minHeight = '297mm';
     clone.style.width = '100%';
     clone.style.whiteSpace = 'normal';
-    clone.style.overflow = 'visible'; // Ensure nothing hides overflow
+    clone.style.overflow = 'visible'; 
 
     container.appendChild(clone);
 
@@ -220,17 +222,17 @@ function App() {
       ? filename.trim() 
       : `${filename.trim()}.pdf`;
 
+    // Microsoft Word Standard Configuration
     const opt = {
-      margin: [0, 0, 15, 0], // Top, Left, Bottom (for footer), Right
+      margin: [25.4, 25.4, 25.4, 25.4], // 1 inch = 25.4mm (Top, Left, Bottom, Right)
       filename: cleanFilename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, 
+        scale: 4, // High Resolution (4x)
         useCORS: true, 
         logging: false,
         letterRendering: true,
         scrollY: 0, // Critical to prevent scroll offset issues
-        // REMOVED windowHeight/windowWidth to allow auto-detection of full scrollHeight
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       pagebreak: { mode: ['css', 'legacy'] }
@@ -246,11 +248,13 @@ function App() {
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         
+        // Add Pagination Footer (Word Style)
         for (let i = 1; i <= totalPages; i++) {
           pdf.setPage(i);
-          pdf.setFontSize(9);
-          pdf.setTextColor(150);
-          pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+          pdf.setFontSize(10);
+          pdf.setTextColor(100);
+          // Position inside the bottom margin area (Page height - ~15mm)
+          pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
         }
       })
       .save()
