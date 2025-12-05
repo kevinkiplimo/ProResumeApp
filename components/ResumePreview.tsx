@@ -134,8 +134,10 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
             <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4 border-b border-slate-300 pb-1 text-center">
               Skills
             </h2>
-            <div className="text-center text-slate-800">
-               {data.skills.join(' • ')}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-center text-slate-800 text-sm">
+               {data.skills.map((skill, i) => (
+                 <div key={i} className="p-1">{skill}</div>
+               ))}
             </div>
           </section>
         )}
@@ -217,9 +219,9 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
           </section>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {data.education.length > 0 && (
-            <section className="mb-8">
+            <section>
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>Education</h2>
               <div className="space-y-4">
                 {data.education.map((edu) => (
@@ -236,16 +238,35 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
           )}
 
           {data.skills.length > 0 && (
-            <section className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+            <section className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Skills</h2>
-               <div className="flex flex-wrap gap-x-2 gap-y-1 text-sm text-slate-700">
+               <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-sm text-slate-700">
                   {data.skills.map((skill, i) => (
-                    <span key={i} className="bg-slate-50 px-2 py-1 rounded">{skill}</span>
+                    <div key={i} className="truncate">• {skill}</div>
                   ))}
                </div>
             </section>
           )}
         </div>
+
+        {data.references.length > 0 && (
+          <section className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-6">References</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              {data.references.map((ref) => (
+                <div key={ref.id} className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+                  <h3 className="font-semibold text-slate-900">{ref.name}</h3>
+                  <div className="text-sm text-slate-700">{ref.role}</div>
+                  <div className="text-sm text-slate-500 mb-1">{ref.company}</div>
+                  <div className="text-xs text-slate-400 space-y-0.5 font-mono">
+                    {ref.email && <div>{ref.email}</div>}
+                    {ref.phone && <div>{ref.phone}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     );
   }
@@ -341,14 +362,14 @@ export const ResumePreview: React.FC<ResumePreviewProps> = ({ data, template = '
           <h2 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 border-b border-slate-200 pb-2">
             Skills
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {data.skills.map((skill, index) => (
-              <span 
+              <div 
                 key={index} 
-                className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded text-sm font-medium border border-slate-200"
+                className="bg-slate-50 text-slate-700 px-3 py-1.5 rounded text-sm font-medium border border-slate-200 text-center"
               >
                 {skill}
-              </span>
+              </div>
             ))}
           </div>
         </section>
