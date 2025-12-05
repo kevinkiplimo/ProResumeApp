@@ -3,6 +3,7 @@ import { ResumeData, SectionType, ExperienceItem, EducationItem, ReferenceItem }
 import { ResumePreview, TemplateType } from './components/ResumePreview';
 import { WelcomeModal } from './components/WelcomeModal';
 import { ExportModal } from './components/ExportModal';
+import { EmailModal } from './components/EmailModal';
 import { Button, Input, RichTextArea, Icons } from './components/UI';
 import { enhanceText, generateSummary } from './services/geminiService';
 
@@ -30,6 +31,7 @@ function App() {
   const [activeSection, setActiveSection] = useState<SectionType | 'design'>('personal');
   const [showWelcome, setShowWelcome] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [enhancingId, setEnhancingId] = useState<string | null>(null);
   const [template, setTemplate] = useState<TemplateType>('modern');
   
@@ -172,69 +174,74 @@ function App() {
     document.body.removeChild(link);
   };
 
-  // Open Modal for PDF Download
-  const handleDownloadClick = () => {
-    setShowExportModal(true);
-  };
-
-  // Execute PDF Download via html2pdf.js
-  const handleConfirmExport = (filename: string) => {
-    setShowExportModal(false);
-    
-    // Check if library is available
+  // Core PDF Generation Logic (Reusable)
+  const generatePDF = async (filename: string, callback?: () => void) => {
     if (typeof window.html2pdf === 'undefined') {
         alert("PDF generator is initializing. Please try again in a moment.");
         return;
     }
 
-    const element = document.getElementById('resume-preview');
-    if (!element) return;
+    const originalElement = document.getElementById('resume-preview');
+    if (!originalElement) return;
 
-    // Temporarily remove shadow and padding to let PDF engine handle margins
-    const wasShadowed = element.classList.contains('shadow-2xl');
-    if (wasShadowed) element.classList.remove('shadow-2xl');
-
-    // Remove internal padding classes to avoid double spacing with PDF margins
-    // We store the class to restore it later.
-    let originalPaddingClass = '';
-    const classList = Array.from(element.classList);
-    const paddingClass = classList.find(c => c.startsWith('p-['));
-    if (paddingClass) {
-        originalPaddingClass = paddingClass;
-        element.classList.remove(paddingClass);
-        element.classList.add('p-0');
+    // Wait for fonts to ensure no layout shift or missing text
+    try {
+        await document.fonts.ready;
+    } catch (e) {
+        console.warn("Font loading check failed, proceeding anyway.");
     }
+
+    // Clone logic: Create a clean environment for the PDF capture
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = '210mm'; // Force exact A4 width context
+    container.style.zIndex = '-1';
+    document.body.appendChild(container);
+
+    const clone = originalElement.cloneNode(true) as HTMLElement;
+    
+    // Reset styles for the clone to ensure flat A4 rendering
+    clone.style.transform = 'none';
+    clone.style.margin = '0'; // Overrides mx-auto
+    clone.style.padding = '0'; // We rely on the ResumePreview's internal padding
+    clone.style.boxShadow = 'none';
+    clone.classList.remove('shadow-2xl', 'mx-auto', 'my-8'); // Remove display-only classes
+    clone.style.height = 'auto'; // Allow full expansion
+    clone.style.minHeight = '297mm';
+    clone.style.width = '100%';
+    clone.style.whiteSpace = 'normal';
+    clone.style.overflow = 'visible'; // Ensure nothing hides overflow
+
+    container.appendChild(clone);
 
     const cleanFilename = filename.trim().endsWith('.pdf') 
       ? filename.trim() 
       : `${filename.trim()}.pdf`;
 
     const opt = {
-      // Top, Left, Bottom, Right (mm) - Bottom increased to 15mm for footer space
-      margin: [10, 10, 15, 10], 
+      margin: [0, 0, 15, 0], // Top, Left, Bottom (for footer), Right
       filename: cleanFilename,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { 
-        scale: 2, // High resolution
+        scale: 2, 
         useCORS: true, 
-        scrollY: 0,
         logging: false,
         letterRendering: true,
-        // Critical: Capture full height to prevent truncation on multipage
-        windowHeight: element.scrollHeight + 50 
+        scrollY: 0, // Critical to prevent scroll offset issues
+        // REMOVED windowHeight/windowWidth to allow auto-detection of full scrollHeight
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] } // Respect CSS page break rules
+      pagebreak: { mode: ['css', 'legacy'] }
     };
 
-    // Execute generation
     window.html2pdf()
       .set(opt)
-      .from(element)
+      .from(clone)
       .toPdf()
       .get('pdf')
       .then((pdf: any) => {
-        // Add Pagination Footer
         const totalPages = pdf.internal.getNumberOfPages();
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
@@ -242,35 +249,62 @@ function App() {
         for (let i = 1; i <= totalPages; i++) {
           pdf.setPage(i);
           pdf.setFontSize(9);
-          pdf.setTextColor(150); // Light gray
-          // Center footer text at bottom
+          pdf.setTextColor(150);
           pdf.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 8, { align: 'center' });
         }
       })
       .save()
       .then(() => {
-        // Restore styling
-        if (wasShadowed) element.classList.add('shadow-2xl');
-        if (originalPaddingClass) {
-            element.classList.remove('p-0');
-            element.classList.add(originalPaddingClass);
-        }
+        document.body.removeChild(container);
+        if (callback) callback();
       })
       .catch((err: any) => {
         console.error('PDF Generation Error:', err);
-        if (wasShadowed) element.classList.add('shadow-2xl');
-        if (originalPaddingClass) {
-            element.classList.remove('p-0');
-            element.classList.add(originalPaddingClass);
-        }
-        alert('Failed to generate PDF. Please check console for details.');
+        document.body.removeChild(container);
+        alert('Failed to generate PDF. Please check console.');
       });
+  };
+
+  // Open Modal for PDF Download
+  const handleDownloadClick = () => {
+    setShowExportModal(true);
+  };
+
+  // Execute PDF Download
+  const handleConfirmExport = (filename: string) => {
+    setShowExportModal(false);
+    // Slight delay to allow modal to close completely
+    setTimeout(() => {
+        generatePDF(filename);
+    }, 100);
+  };
+
+  // Open Modal for Email
+  const handleEmailClick = () => {
+    setShowEmailModal(true);
+  };
+
+  // Execute Email Logic
+  const handleConfirmEmail = (to: string, subject: string, body: string) => {
+    setShowEmailModal(false);
+    
+    // 1. Generate PDF so user has it
+    const filename = getDefaultFilename();
+    generatePDF(filename, () => {
+        // 2. Open Mail Client after PDF generation triggers
+        setTimeout(() => {
+            const mailtoLink = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+            // 3. Inform User
+            alert("Your Resume PDF has been downloaded. Please attach it to the email window that just opened.");
+        }, 1000);
+    });
   };
 
   // Helper to generate default filename
   const getDefaultFilename = () => {
     const name = resumeData.personalInfo.fullName || 'Resume';
-    return `${name}_CV`; // Preserve spaces as requested
+    return `${name}_CV`;
   };
 
   return (
@@ -287,6 +321,12 @@ function App() {
         onClose={() => setShowExportModal(false)}
         onConfirm={handleConfirmExport}
         initialValue={getDefaultFilename()}
+      />
+
+      <EmailModal 
+        isOpen={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        onConfirm={handleConfirmEmail}
       />
 
       <div className="flex h-screen bg-slate-100 font-sans">
@@ -325,6 +365,15 @@ function App() {
               title="Save project file to edit later"
             >
               Save Project
+            </Button>
+            <Button 
+              onClick={handleEmailClick} 
+              variant="secondary"
+              className="w-full justify-center" 
+              icon={<Icons.Mail size={16} />}
+              title="Email Resume"
+            >
+              Email Resume
             </Button>
             <Button 
               onClick={handleDownloadClick} 
