@@ -1,10 +1,16 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState } from 'react';
 import { ResumeData, SectionType, ExperienceItem, EducationItem, ReferenceItem } from './types';
-import { ResumePreview } from './components/ResumePreview';
+import { ResumePreview, TemplateType } from './components/ResumePreview';
 import { WelcomeModal } from './components/WelcomeModal';
 import { ExportModal } from './components/ExportModal';
 import { Button, Input, RichTextArea, Icons } from './components/UI';
 import { enhanceText, generateSummary } from './services/geminiService';
+
+declare global {
+  interface Window {
+    html2pdf: any;
+  }
+}
 
 // Initial Empty State
 const initialResumeState: ResumeData = {
@@ -21,19 +27,21 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 function App() {
   const [resumeData, setResumeData] = useState<ResumeData>(initialResumeState);
-  const [activeSection, setActiveSection] = useState<SectionType>('personal');
+  const [activeSection, setActiveSection] = useState<SectionType | 'design'>('personal');
   const [showWelcome, setShowWelcome] = useState(true);
   const [showExportModal, setShowExportModal] = useState(false);
   const [enhancingId, setEnhancingId] = useState<string | null>(null);
+  const [template, setTemplate] = useState<TemplateType>('modern');
   
   // Navigation Items
-  const navItems: { id: SectionType; label: string; icon: React.ReactNode }[] = [
+  const navItems: { id: SectionType | 'design'; label: string; icon: React.ReactNode }[] = [
     { id: 'personal', label: 'Contact', icon: <Icons.User size={18} /> },
     { id: 'summary', label: 'Summary', icon: <Icons.FileText size={18} /> },
     { id: 'experience', label: 'Experience', icon: <Icons.Briefcase size={18} /> },
     { id: 'education', label: 'Education', icon: <Icons.GraduationCap size={18} /> },
     { id: 'skills', label: 'Skills', icon: <Icons.Wand2 size={18} /> },
     { id: 'references', label: 'References', icon: <Icons.Users size={18} /> },
+    { id: 'design', label: 'Design', icon: <Icons.Palette size={18} /> },
   ];
 
   // Update Handlers
@@ -169,32 +177,60 @@ function App() {
     setShowExportModal(true);
   };
 
-  // Execute PDF Download (Print to PDF with Name)
+  // Execute PDF Download via html2pdf.js
   const handleConfirmExport = (filename: string) => {
     setShowExportModal(false);
     
-    // Set dynamic title for filename
-    const originalTitle = document.title;
-    // Use filename exactly as provided (trimmed)
-    const cleanName = filename.trim() || 'Resume';
-    document.title = cleanName;
+    // Check if library is available
+    if (typeof window.html2pdf === 'undefined') {
+        alert("PDF generator is initializing. Please try again in a moment.");
+        return;
+    }
 
-    // Use setTimeout to allow the UI to settle and ensure the browser 
-    // print dialog is triggered after the current event loop.
-    setTimeout(() => {
-        window.print();
-        
-        // Reset title after a delay
-        setTimeout(() => {
-            document.title = originalTitle;
-        }, 500);
-    }, 100);
+    const element = document.getElementById('resume-preview');
+    if (!element) return;
+
+    // Temporarily remove shadow for clean PDF export
+    const wasShadowed = element.classList.contains('shadow-2xl');
+    if (wasShadowed) element.classList.remove('shadow-2xl');
+
+    const cleanFilename = filename.trim().endsWith('.pdf') 
+      ? filename.trim() 
+      : `${filename.trim()}.pdf`;
+
+    const opt = {
+      margin: 0, // Resume component already has internal padding
+      filename: cleanFilename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, // High resolution
+        useCORS: true, 
+        scrollY: 0,
+        logging: false
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // Execute generation
+    window.html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+        // Restore styling
+        if (wasShadowed) element.classList.add('shadow-2xl');
+      })
+      .catch((err: any) => {
+        console.error('PDF Generation Error:', err);
+        if (wasShadowed) element.classList.add('shadow-2xl');
+        alert('Failed to generate PDF. Please check console for details.');
+      });
   };
 
   // Helper to generate default filename
   const getDefaultFilename = () => {
     const name = resumeData.personalInfo.fullName || 'Resume';
-    // Provide a reasonable default but let user edit fully
     return `${name.replace(/\s+/g, '_')}_CV`;
   };
 
@@ -523,13 +559,92 @@ function App() {
                   </Button>
                 </div>
               )}
+
+              {/* SECTION: DESIGN (TEMPLATE SELECTION) */}
+              {activeSection === 'design' && (
+                <div className="space-y-6 animate-fade-in">
+                  <h3 className="text-lg font-medium text-slate-700">Choose a Template</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {/* Modern Template Option */}
+                    <button 
+                      onClick={() => setTemplate('modern')}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left group overflow-hidden ${
+                        template === 'modern' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                         <div className="w-16 h-20 bg-white border border-slate-200 shadow-sm rounded flex flex-col p-1">
+                            <div className="h-2 w-full bg-slate-800 rounded-sm mb-1"></div>
+                            <div className="h-1 w-2/3 bg-blue-500 rounded-sm mb-2"></div>
+                            <div className="space-y-1">
+                                <div className="h-1 w-full bg-slate-100 rounded-sm"></div>
+                                <div className="h-1 w-full bg-slate-100 rounded-sm"></div>
+                            </div>
+                         </div>
+                         <div>
+                            <h4 className="font-bold text-slate-800">Modern Professional</h4>
+                            <p className="text-sm text-slate-500 mt-1">Clean sans-serif fonts with subtle blue accents. Best for tech and corporate roles.</p>
+                         </div>
+                      </div>
+                      {template === 'modern' && <div className="absolute top-4 right-4 text-blue-600"><Icons.Check size={20} /></div>}
+                    </button>
+
+                    {/* Classic Template Option */}
+                    <button 
+                      onClick={() => setTemplate('classic')}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left group overflow-hidden ${
+                        template === 'classic' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                         <div className="w-16 h-20 bg-white border border-slate-200 shadow-sm rounded flex flex-col p-1 items-center">
+                            <div className="h-2 w-3/4 bg-slate-900 rounded-sm mb-2 mt-1"></div>
+                            <div className="h-px w-full bg-slate-300 mb-1"></div>
+                            <div className="space-y-1 w-full">
+                                <div className="h-1 w-full bg-slate-100 rounded-sm"></div>
+                                <div className="h-1 w-full bg-slate-100 rounded-sm"></div>
+                            </div>
+                         </div>
+                         <div>
+                            <h4 className="font-bold text-slate-800">Classic Elegant</h4>
+                            <p className="text-sm text-slate-500 mt-1">Traditional serif fonts with centered headers. Timeless and authoritative.</p>
+                         </div>
+                      </div>
+                      {template === 'classic' && <div className="absolute top-4 right-4 text-blue-600"><Icons.Check size={20} /></div>}
+                    </button>
+
+                    {/* Minimal Template Option */}
+                    <button 
+                      onClick={() => setTemplate('minimal')}
+                      className={`relative p-4 rounded-xl border-2 transition-all text-left group overflow-hidden ${
+                        template === 'minimal' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-slate-200 hover:border-blue-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                         <div className="w-16 h-20 bg-white border border-slate-200 shadow-sm rounded flex flex-col p-1">
+                            <div className="h-3 w-1/2 bg-slate-800 rounded-sm mb-3"></div>
+                            <div className="space-y-2">
+                                <div className="h-px w-full bg-slate-200"></div>
+                                <div className="h-1 w-3/4 bg-slate-100 rounded-sm"></div>
+                            </div>
+                         </div>
+                         <div>
+                            <h4 className="font-bold text-slate-800">Minimalist</h4>
+                            <p className="text-sm text-slate-500 mt-1">High whitespace, gray typography, left-aligned. Focus purely on content.</p>
+                         </div>
+                      </div>
+                      {template === 'minimal' && <div className="absolute top-4 right-4 text-blue-600"><Icons.Check size={20} /></div>}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* PREVIEW COLUMN */}
           <div id="preview-column" className="flex-1 bg-slate-200 overflow-y-auto p-8 flex justify-center items-start print:p-0 print:bg-white print:block">
-            <div className="scale-[0.8] md:scale-[0.85] lg:scale-[0.9] xl:scale-100 origin-top transition-transform duration-200 print:scale-100 print:origin-top-left">
-              <ResumePreview data={resumeData} />
+            <div className="scale-[0.8] md:scale-[0.85] lg:scale-[0.9] xl:scale-100 origin-top transition-transform duration-200 print:scale-100 print:origin-top-left print:m-0 print:p-0 print:w-full">
+              <ResumePreview data={resumeData} template={template} />
             </div>
           </div>
 

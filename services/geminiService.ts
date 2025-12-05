@@ -38,68 +38,7 @@ export const parseResumeFromText = async (rawText: string): Promise<Partial<Resu
       `,
       config: {
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            personalInfo: {
-              type: Type.OBJECT,
-              properties: {
-                fullName: { type: Type.STRING },
-                email: { type: Type.STRING },
-                phone: { type: Type.STRING },
-                location: { type: Type.STRING },
-                linkedin: { type: Type.STRING },
-                website: { type: Type.STRING }
-              }
-            },
-            summary: { type: Type.STRING },
-            experience: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  company: { type: Type.STRING },
-                  role: { type: Type.STRING },
-                  startDate: { type: Type.STRING },
-                  endDate: { type: Type.STRING },
-                  current: { type: Type.BOOLEAN },
-                  description: { type: Type.STRING }
-                }
-              }
-            },
-            education: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  institution: { type: Type.STRING },
-                  degree: { type: Type.STRING },
-                  startDate: { type: Type.STRING },
-                  endDate: { type: Type.STRING },
-                  current: { type: Type.BOOLEAN },
-                  description: { type: Type.STRING }
-                }
-              }
-            },
-            skills: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            references: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                    name: { type: Type.STRING },
-                    role: { type: Type.STRING },
-                    company: { type: Type.STRING },
-                    email: { type: Type.STRING },
-                    phone: { type: Type.STRING }
-                }
-              }
-            }
-          }
-        }
+        responseSchema: getResumeSchema()
       }
     });
 
@@ -108,6 +47,47 @@ export const parseResumeFromText = async (rawText: string): Promise<Partial<Resu
   } catch (error) {
     console.error("Gemini Parse Error:", error);
     throw new Error("Failed to parse resume text.");
+  }
+};
+
+export const generateTailoredResume = async (
+  currentResume: string, 
+  linkedinData: string, 
+  jobDescription: string, 
+  location: string
+): Promise<Partial<ResumeData>> => {
+  try {
+    const prompt = `
+      Act as an expert resume writer and career coach. 
+      I need you to generate a tailored resume JSON object based on the following inputs.
+
+      1. **Current Resume**: ${currentResume}
+      2. **LinkedIn Profile Data**: ${linkedinData}
+      3. **Target Job Description**: ${jobDescription}
+      4. **Target Location**: ${location}
+
+      **Instructions**:
+      - MERGE the Current Resume and LinkedIn Profile data to create a comprehensive history.
+      - FILTER and PRIORITIZE experiences, skills, and summary to match the keywords and requirements of the **Target Job Description**.
+      - REWRITE bullet points to highlight achievements relevant to the target role.
+      - Set the location in personalInfo to "${location}".
+      - Ensure the output fits the JSON schema provided.
+    `;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: getResumeSchema()
+      }
+    });
+
+    const jsonText = response.text || "{}";
+    return JSON.parse(jsonText);
+  } catch (error) {
+    console.error("Gemini Tailoring Error:", error);
+    throw new Error("Failed to generate tailored resume.");
   }
 };
 
@@ -122,4 +102,70 @@ export const generateSummary = async (resumeData: ResumeData): Promise<string> =
     } catch (e) {
         return "";
     }
+}
+
+// Helper to keep schema consistent
+function getResumeSchema() {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      personalInfo: {
+        type: Type.OBJECT,
+        properties: {
+          fullName: { type: Type.STRING },
+          email: { type: Type.STRING },
+          phone: { type: Type.STRING },
+          location: { type: Type.STRING },
+          linkedin: { type: Type.STRING },
+          website: { type: Type.STRING }
+        }
+      },
+      summary: { type: Type.STRING },
+      experience: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            company: { type: Type.STRING },
+            role: { type: Type.STRING },
+            startDate: { type: Type.STRING },
+            endDate: { type: Type.STRING },
+            current: { type: Type.BOOLEAN },
+            description: { type: Type.STRING }
+          }
+        }
+      },
+      education: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            institution: { type: Type.STRING },
+            degree: { type: Type.STRING },
+            startDate: { type: Type.STRING },
+            endDate: { type: Type.STRING },
+            current: { type: Type.BOOLEAN },
+            description: { type: Type.STRING }
+          }
+        }
+      },
+      skills: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING }
+      },
+      references: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+              name: { type: Type.STRING },
+              role: { type: Type.STRING },
+              company: { type: Type.STRING },
+              email: { type: Type.STRING },
+              phone: { type: Type.STRING }
+          }
+        }
+      }
+    }
+  };
 }

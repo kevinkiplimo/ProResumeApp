@@ -6,6 +6,7 @@
     <title>ProResume AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
       body { font-family: 'Inter', sans-serif; }
       .font-serif { font-family: 'Merriweather', serif; }
@@ -14,14 +15,15 @@
       @media print {
         @page {
           size: A4;
-          margin: 0; /* We handle margins in the component */
+          margin: 0;
         }
         
         body, html { 
           margin: 0; 
           padding: 0; 
           background: white; 
-          height: 100%; 
+          height: auto; 
+          min-height: 100%;
           overflow: visible !important;
         }
 
@@ -35,7 +37,7 @@
           overflow: visible !important;
         }
 
-        /* Hide sidebar and editor column */
+        /* Hide sidebar, editor, and modals */
         aside, nav, button, .print\:hidden { 
           display: none !important; 
         }
@@ -49,26 +51,47 @@
           padding: 0 !important;
         }
 
+        /* Reset the Preview Column layout for print */
+        #preview-column {
+          display: block !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+          background: white !important;
+          overflow: visible !important;
+        }
+        
+        /* Reset any scaling transforms on the container */
+        #preview-column > div {
+          transform: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+        }
+
         /* Target the ResumePreview component specifically */
         #resume-preview {
           display: block !important;
-          width: 100% !important;
+          width: 210mm !important; /* Force A4 width */
           max-width: none !important;
-          margin: 0 !important;
+          margin: 0 auto !important;
           padding: 15mm !important; /* Standard A4 padding */
           box-shadow: none !important;
           border: none !important;
-          position: absolute;
-          top: 0;
-          left: 0;
+          /* Use relative positioning for proper flow */
+          position: relative !important; 
+          top: auto !important;
+          left: auto !important;
           background: white !important;
-          min-height: auto !important;
+          min-height: 297mm !important; /* Minimum A4 height */
+          height: auto !important;
         }
 
         /* Page Break Handling */
         section { 
           break-inside: avoid; 
           page-break-inside: avoid;
+          margin-bottom: 2rem; 
         }
         
         h1, h2, h3 { 
